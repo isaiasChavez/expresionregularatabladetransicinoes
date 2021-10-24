@@ -1,23 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
- <meta charset="UTF-8">
- <meta http-equiv="X-UA-Compatible" content="IE=edge">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Document</title>
-   <link rel="stylesheet" href="src/css/tailwind.css">
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="src/css/tailwind.css" />
 </head>
+
 <body>
- <div class="h-screen w-screen flex bg-gray-200 justify-center items-center">
+    <div class="h-screen  w-screen  bg-gray-200 ">
+        <div class="h-3/6 w-full flex justify-center items-center">
+            <div class="flex flex-col h-48 w-2/6 rounded bg-white shadow-md p-4">
+                <textarea placeholder="aa|b|c" name="" class="px-4 py-2" id="entradaDeTexto" cols="30" rows="10"></textarea>
+                <button class="w-3/6 shadow-md hover:opacity-70 transition  duration-200	 rounded bg-gray-500 mt-4 mx-auto py-1 text-white" id="bottonEntrada">
+            Procesar
+          </button>
+                <span id="textError" class="text-red-400"> </span>
+            </div>
+            <div class="h-48 w-2/6 px-10">
+                <div class="text-xl text-center font-bold">Datos</div>
+                <ul class="text-base font-semibold ">
+                    <li>Cadena procesada: <span id="cadenaProcesada"></span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="h-3/6 w-full flex justify-center items-center">
+            <table class="w-full bg-gray-600 text-white">
+               <caption class="text-black">Tabla de transiciones </caption>
 
-  <div class="flex flex-col h-48 w-2/6 rounded bg-white p-4">
+                <tr id="titulosTabla">
+                    
+                </tr>
 
-   <textarea placeholder="aa|b|c" name="" class="px-4 py-2"  id="entradaDeTexto" cols="30" rows="10"></textarea>
-    <button class="w-3/6 rounded bg-gray-500 mt-4 mx-auto py-1 text-white" id="bottonEntrada">Ingresar</button>
-    <span id="textError" class="text-red-400"> </span>
-  </div>
-  
- </div>
+               <!--  <tr>
+                    <td>Soleado</td>
+
+                    <td>Mayormente soleado</td>
+
+                    <td>Parcialmente nublado</td>
+                </tr>
+
+                <tr>
+                    <td>19°C</td>
+
+                    <td>17°C</td>
+
+                    <td>12°C</td>
+                </tr>
+
+                <tr>
+                    <td>E 13 km/h</td>
+
+                    <td>E 11 km/h</td>
+
+                    <td>S 16 km/h</td>
+                </tr> -->
+            </table>
+        </div>
+    </div>
 </body>
-<script src="./dist/index.js"></script>
+<script type="module" src="./dist/index.js"></script>
+
 </html>

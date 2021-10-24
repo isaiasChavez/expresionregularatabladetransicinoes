@@ -1,20 +1,25 @@
 const $botonStart = document.getElementById('bottonEntrada')
 const $inputDatos: any = document.getElementById('entradaDeTexto')
 const $errorTitle: any = document.getElementById('textError')
+const cadenaProcesada: any = document.getElementById('cadenaProcesada')
+const $titulosTabla: any = document.getElementById('titulosTabla')
 
-const nodoInicial = -1
-const nodoFinal = -2
+const random = (min, max) => {
+  return Math.floor(Math.random() * (max - min + 1) + min)
+}
 
 class Nodo {
   esInicial: boolean
   esFinal: boolean
   esDesechado: boolean
-  fda: FDAContatenacion | FDASimple | FDAUnion
+  fda: FDAContatenacion | FDASimple | FDAUnion | FDACerraduraKleen
+  numeroNodo: number = random(0, 1000)
+
   constructor (datos: {
     esInicial: boolean
     esFinal: boolean
     esDesechado: boolean
-    fda: FDAContatenacion | FDASimple | FDAUnion
+    fda: FDAContatenacion | FDASimple | FDAUnion | FDACerraduraKleen
   }) {
     this.esInicial = datos.esInicial
     this.esFinal = datos.esFinal
@@ -27,14 +32,22 @@ class Nodo {
 }
 
 interface FDA {
-  setNodoDerecha(nodoDerecha: Nodo | FDAContatenacion | FDASimple): any
-  setNodoIzquierda(nodoIzquierda: Nodo | FDAContatenacion | FDASimple): any
+  setNodoDerecha(
+    nodoDerecha: Nodo | FDAContatenacion | FDASimple | FDACerraduraKleen
+  ): any
+  setNodoIzquierda(
+    nodoIzquierda: Nodo | FDAContatenacion | FDASimple | FDACerraduraKleen
+  ): any
 }
 
 class FDASimple implements FDA {
   caracter: string
 
-  nodoDerecha: Nodo | FDAContatenacion | FDASimple = new Nodo({
+  nodoDerecha:
+    | Nodo
+    | FDAContatenacion
+    | FDASimple
+    | FDACerraduraKleen = new Nodo({
     esInicial: false,
     esFinal: true,
     esDesechado: false,
@@ -44,7 +57,9 @@ class FDASimple implements FDA {
   constructor (caracter: string) {
     this.caracter = caracter
   }
-  setNodoDerecha (nodoDerecha: Nodo | FDAContatenacion | FDASimple): any {
+  setNodoDerecha (
+    nodoDerecha: Nodo | FDAContatenacion | FDASimple | FDACerraduraKleen
+  ): any {
     this.nodoDerecha = nodoDerecha
   }
   setNodoIzquierda (): any {}
@@ -102,7 +117,6 @@ class FDAUnion implements FDA {
     this.caracter = caracter
     this.nodoArriba = nodoArriba
     this.nodoAbajo = nodoAbajo
-
   }
 
   setNodoIzquierda () {}
@@ -115,6 +129,48 @@ class FDAUnion implements FDA {
   }
   setNodoArriba (nodoArriba: Nodo | FDAContatenacion | FDASimple) {
     this.nodoArriba = nodoArriba
+  }
+}
+
+class FDACerraduraKleen implements FDA {
+  caracter: string
+
+  nodoIzquierda:
+    | FDASimple
+    | FDAContatenacion
+    | FDAUnion
+    | Nodo
+    | FDACerraduraKleen = new Nodo({
+    esDesechado: false,
+    esInicial: true,
+    esFinal: false,
+    fda: this
+  })
+
+  nodoDerecha:
+    | FDASimple
+    | FDAContatenacion
+    | FDAUnion
+    | Nodo
+    | FDACerraduraKleen = new Nodo({
+    esDesechado: false,
+    esInicial: false,
+    esFinal: true,
+    fda: this
+  })
+  nodo: FDASimple | FDAContatenacion | FDAUnion | Nodo | FDACerraduraKleen
+
+  constructor (
+    caracter: string,
+    nodo: FDASimple | FDAContatenacion | FDAUnion
+  ) {
+    this.nodo = nodo
+    this.caracter = caracter
+  }
+
+  setNodoIzquierda () {}
+  setNodoDerecha (nodoDerecha: Nodo | FDAContatenacion | FDASimple) {
+    this.nodoDerecha = nodoDerecha
   }
 }
 enum Cerradura {
@@ -130,24 +186,61 @@ enum Operaciones {
   CerraduraKleen = 'CerraduraKleen'
 }
 
+const tituloTabla = (nombre:string)=>{
+  return `
+  <th>${nombre}</th>
+  `
+}
+
 class Thompson {
   caracteresReservados: string[] = ['*', '?', '(', ')', '|']
   cerraduraPositiva: string = '+'
   cerraduraOpcional: string = '?'
   union: string = '|'
   cerraduraKleen: string = '*'
-  parentecisIzquierdo: string = ')'
-  parentecisDerecho: string = '('
+  parentecisIzquierdo: string = '('
+  parentecisDerecho: string = ')'
   alfabeto = ['a', 'b', 'c', 'd']
   fda: FDASimple | FDAContatenacion
-  nodos:number =0
+  fdaProcesado: string = ''
+  nodos: number = 0
+
   constructor (entrada: string[]) {
     this.limpiarEntrada(entrada)
-    this.fda = this.procesarEntrada(entrada)
-    this.procesarAFD(this.fda)
-    console.log(this.fda)
+    this.fda = this.procesarEntrada(entrada, null)
+    this.generarStringFDA(this.fda)
+    this.generarTablaFDA(this.fda)
   }
-
+  generarStringFDA (
+    afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen
+  ) {
+    if (afnd instanceof FDAContatenacion) {
+      this.generarStringFDA(afnd.nodoIzquierda)
+      this.generarStringFDA(afnd.nodoDerecha)
+    }
+    if (afnd instanceof FDAUnion) {
+      this.generarStringFDA(afnd.nodoArriba)
+      this.fdaProcesado += '|'
+      this.generarStringFDA(afnd.nodoAbajo)
+    }
+    if (afnd instanceof FDACerraduraKleen) {
+      this.fdaProcesado += '('
+      this.generarStringFDA(afnd.nodo)
+      this.fdaProcesado += ')*'
+    }
+    if (afnd instanceof FDASimple) {
+      this.fdaProcesado += afnd.caracter
+    }
+  }
+  generarTitulosTablaFDA () {
+    this.alfabeto.map(caracter=>{
+      $titulosTabla.innerHTML += tituloTabla(caracter)
+    })
+    $titulosTabla.innerHTML += tituloTabla('ε')
+  }
+   generarTablaFDA (afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen) {
+      this.generarTitulosTablaFDA()
+  }
   limpiarEntrada (entrada: string[]) {
     entrada.map((caracter: string) => {
       const esUnCaracterInvalido =
@@ -158,21 +251,20 @@ class Thompson {
       }
     })
   }
-  procesarAFD (afnd:FDAContatenacion|FDAUnion|FDASimple|Nodo) {
-    if (afnd instanceof FDAContatenacion) {
-      this.procesarAFD(afnd.nodoIzquierda)
-      this.procesarAFD(afnd.nodoDerecha)
-    }
-    if (afnd instanceof FDAUnion) {
-      this.procesarAFD(afnd.nodoArriba)
-      console.log("|")
-      this.procesarAFD(afnd.nodoAbajo)
-    }
-    if (afnd instanceof FDASimple) {
-      console.log(afnd.caracter)
-    }
-  }
 
+  encontrarParentesisIzquierdo = (entrada: string[]): number => {
+    let indexC = -1
+    entrada.find((caracter: string, index: number) => {
+      if (caracter === this.parentecisIzquierdo) {
+        indexC = index
+        return caracter
+      }
+    })
+    if (indexC === -1) {
+      throw new Error('Las clausuras requieren un parentesis de cierre')
+    }
+    return indexC
+  }
 
   buscarCerradura = (
     entrada: string[]
@@ -238,10 +330,25 @@ class Thompson {
     })
     return union
   }
+  limpiarCerradura = (entrada: string[]): string[] => {
+    let seccionCerradura: string[]
+    entrada.pop()
+    const indexDerecho = entrada.length - 1
+    const final = entrada[indexDerecho]
+    const existenParentesis = final === this.parentecisDerecho
+    if (existenParentesis) {
+      const indexIzquierdo = this.encontrarParentesisIzquierdo(entrada)
+      seccionCerradura = entrada.slice(indexIzquierdo + 1, indexDerecho)
+    } else {
+      throw new Error('Las clausuras requieren parentesis')
+    }
+    return seccionCerradura
+  }
   procesarEntrada = (
     entrada: string[],
-    numeroNodo: number = 0
-  ): FDASimple | FDAContatenacion|FDAUnion => {
+    nodoDerecho: FDACerraduraKleen | FDASimple | FDAContatenacion | FDAUnion,
+    numeroNodo: number = ++this.nodos
+  ): FDASimple | FDAContatenacion | FDAUnion => {
     console.log(numeroNodo)
     /*     const nodoIzquierdo:FDA
     const nodoDerecho:FDA */
@@ -251,41 +358,87 @@ class Thompson {
     let fdaIzquierdo: FDASimple | FDAContatenacion
     let fdaDerecho: FDASimple | FDAContatenacion
     let nuevoFDA: FDASimple | FDAContatenacion = null
+    const finalCadena = entrada.length
+    let cerraduraLimpia: string[]
+
     if (entrada.length === 1) {
-      console.log("ES SIMPLE",{entrada})
+      console.log('ES SIMPLE', { entrada })
       return new FDASimple(entrada[0])
+    } else if (this.buscarCerradura(entrada).existe) {
+      console.log('ES CERRADURA')
+      const cerradura = this.buscarCerradura(entrada)
+
+      const adelanteDeCerradura = cerradura.index + 1
+      mitadIzquierda = entrada.slice(0, adelanteDeCerradura)
+
+      cerraduraLimpia = this.limpiarCerradura([...mitadIzquierda])
+
+      const indexParetensisIzquierdo = this.encontrarParentesisIzquierdo(
+        entrada
+      )
+
+      if (!nodoDerecho) {
+        mitadDerecha = entrada.slice(adelanteDeCerradura, finalCadena)
+
+        if (mitadDerecha[0] === this.union) {
+          operacion = Operaciones.Union
+          mitadDerecha.shift()
+        }
+
+        fdaDerecho = this.procesarEntrada(mitadDerecha, null)
+      } else {
+        fdaDerecho = nodoDerecho
+      }
+
+      const cerraduraProcesada:
+        | FDAContatenacion
+        | FDASimple
+        | FDAUnion = this.procesarEntrada(cerraduraLimpia, null)
+
+      const nuevaCerradura: FDACerraduraKleen = new FDACerraduraKleen(
+        `(${cerraduraProcesada.caracter})*`,
+        cerraduraProcesada
+      )
+      const cerraduraEstaAlInicio = indexParetensisIzquierdo === 0
+      if (!cerraduraEstaAlInicio) {
+        const mitadMitadIzquierdaConCerradura = entrada.slice(
+          0,
+          indexParetensisIzquierdo
+        )
+        fdaIzquierdo = this.procesarEntrada(
+          mitadMitadIzquierdaConCerradura,
+          nuevaCerradura
+        )
+      } else {
+        fdaIzquierdo = nuevaCerradura
+      }
     } else if (this.buscarUnion(entrada).existe) {
-      console.log("ES UNION")
       operacion = Operaciones.Union
       const mitad: number = this.buscarUnion(entrada).index
       mitadIzquierda = entrada.slice(0, mitad)
-      const adelanteDelCaracter = mitad + 1
-      const finalCadena = entrada.length //no considera el último
-      mitadDerecha = entrada.slice(adelanteDelCaracter, finalCadena)
-      console.log({mitadDerecha,mitadIzquierda})
-      fdaIzquierdo = this.procesarEntrada(mitadIzquierda, ++this.nodos)
-      fdaDerecho = this.procesarEntrada(mitadDerecha, ++this.nodos)
+      fdaIzquierdo = this.procesarEntrada(mitadIzquierda, null)
+
+      if (!nodoDerecho) {
+        const adelanteDelCaracter = mitad + 1
+        mitadDerecha = entrada.slice(adelanteDelCaracter, finalCadena)
+        fdaDerecho = this.procesarEntrada(mitadDerecha, null)
+      } else {
+        fdaDerecho = nodoDerecho
+      }
     } else {
-      console.log("ES CONCATENACION")
-      /*     const cerradura = this.buscarCerradura(entrada)
-    if (cerradura.existe) {
-      mitadIzquierda = entrada.slice(0,cerradura.index)
-      
-    }
-    console.log({cerradura}) */
       mitadIzquierda = [entrada.shift()]
       mitadDerecha = entrada
-      try {
-        fdaIzquierdo = this.procesarEntrada(mitadIzquierda, ++this.nodos)
-        fdaDerecho = this.procesarEntrada(mitadDerecha, ++this.nodos)
-      } catch (error) {
-        console.log({ error, numeroNodo })
+
+      fdaIzquierdo = this.procesarEntrada(mitadIzquierda, null)
+      if (!nodoDerecho) {
+        fdaDerecho = this.procesarEntrada(mitadDerecha, null)
+      } else {
+        fdaDerecho = this.procesarEntrada(mitadDerecha, nodoDerecho)
       }
     }
 
     switch (operacion) {
       case Operaciones.Contatenacion:
-       
         nuevoFDA = new FDAContatenacion(
           `${fdaIzquierdo.caracter}  ${fdaDerecho.caracter}`,
           fdaIzquierdo,
@@ -293,7 +446,6 @@ class Thompson {
         )
         break
       case Operaciones.Union:
-        
         nuevoFDA = new FDAUnion(
           `${fdaIzquierdo.caracter} | ${fdaDerecho.caracter}`,
           fdaIzquierdo,
@@ -313,22 +465,19 @@ class Thompson {
 
 const main = () => {
   //let stringEntrada = "(a|b)*abb*"
-  let stringEntrada = 'aa|b|c'
-  /*     const stringEnArray = $inputDatos.value.trim().split('')
-   */
-  const data: string[] = stringEntrada.trim().split('')
+  //let stringEntrada = 'aa|(a|b)*c'
+  $errorTitle.innerHTML = ''
 
+  const data: string[] = $inputDatos.value.trim().split('')
   try {
+    if (data.length === 0) {
+      throw new Error('Debes incluir algun valor')
+    }
     const tablaTransiciones = new Thompson(data)
+    cadenaProcesada.innerHTML = tablaTransiciones.fdaProcesado
   } catch (error) {
+    console.log({ error })
     $errorTitle.innerHTML = error.message
   }
-
-  //Busca parentecis a la izquierda
-  /*     const posicionAnterior:number=cerradura.index-1
-    if (stringEnArray[posicionAnterior]===")") {
-        console.log("hay un parentesis")
-    }
-    console.log("Cerradura:",{cerradura}) */
 }
 $botonStart.addEventListener('click', main)
