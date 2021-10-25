@@ -99,7 +99,6 @@ class FDAContatenacion implements FDA {
     nodoIzquierda.setNodoDerecha(nodoDerecha)
     this.nodoIzquierda = nodoIzquierda
     this.nodoDerecha = nodoDerecha
-    console.log("NUMERO NODO",numeroNodo)
     this.numeroNodo = numeroNodo
   }
   setNodoIzquierda (nodoIzquierda: Nodo | FDAContatenacion | FDASimple) {
@@ -229,7 +228,7 @@ class ColumnaTabla {
   getTag (): string {
     return this.tag
   }
-  setContent (caracter: string|number) {
+  setapuntaA (caracter: string|number) {
     this.tag = `<td class="border-2"> ${caracter} </td>`
     return this
   }
@@ -243,7 +242,7 @@ class FilaTabla {
   constructor (edo:string |number) {
 
     const columnaEdo = new ColumnaTabla()
-    columnaEdo.setContent(edo)
+    columnaEdo.setapuntaA(edo)
 
     this.columnas['EDO'] = columnaEdo
 
@@ -252,11 +251,11 @@ class FilaTabla {
     })
     this.columnas[`ε`] = new ColumnaTabla()
   }
-  setValue(datos:{caracter:string,content:string|number}){
+  setValue(datos:{caracter:string,apuntaA:string|number}){
     
     if (this.columnas.hasOwnProperty(datos.caracter)) {
       const nuevaColumna = new ColumnaTabla()
-      nuevaColumna.setContent(datos.content)
+      nuevaColumna.setapuntaA(datos.apuntaA)
       this.columnas[datos.caracter] = nuevaColumna   
       }else{
         throw new Error('No existe el caracter en el alfabeto')
@@ -325,6 +324,32 @@ class Thompson {
     })
     $titulosTabla.innerHTML += new TituloTabla('ε').getTag()
   }
+
+  traerUltimoAlaDerecha=(fda:FDAContatenacion): FDASimple | Nodo=>{
+        if (fda.nodoDerecha instanceof FDASimple) {
+            return fda.nodoDerecha
+        }
+        if (fda.nodoDerecha instanceof FDAContatenacion) {
+            return this.traerUltimoAlaDerecha(fda.nodoDerecha)
+        }
+        if (fda.nodoDerecha instanceof FDACerraduraKleen||fda.nodoDerecha instanceof FDAUnion) {
+            return fda.nodoDerecha.nodoDerecha
+        }
+      }
+
+  traerUltimoAlaIzquierda = (fda:FDAContatenacion): FDASimple | Nodo=>{
+        if (fda.nodoIzquierda instanceof FDASimple) {
+            return fda.nodoIzquierda
+        }
+        if (fda.nodoIzquierda instanceof FDAContatenacion) {
+            return this.traerUltimoAlaIzquierda(fda.nodoIzquierda)
+        }
+        if (fda.nodoIzquierda instanceof FDACerraduraKleen||fda.nodoIzquierda instanceof FDAUnion) {
+          //A la izquierda del concatendado y a la izquierda de ese mismo
+            return fda.nodoIzquierda.nodoIzquierda
+        }
+      }
+
   generarFilasTablaFDA (afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen) {
      if (afnd instanceof FDAContatenacion) {
 
@@ -339,86 +364,71 @@ class Thompson {
       let filaArribaIzquierda:FilaTabla
       let filaAbajoIzquierda:FilaTabla
 
-      const traerUltimoAlaDerecha = (fda:FDAContatenacion): FDASimple | Nodo=>{
-        if (fda.nodoDerecha instanceof FDASimple) {
-            return fda.nodoDerecha
-        }
-        if (fda.nodoDerecha instanceof FDAContatenacion) {
-            return traerUltimoAlaDerecha(fda.nodoDerecha)
-        }
-        if (fda.nodoDerecha instanceof FDACerraduraKleen||fda.nodoDerecha instanceof FDAUnion) {
-            return fda.nodoDerecha.nodoDerecha
-        }
-      }
-
-      const traerUltimoAlaIzquierda = (fda:FDAContatenacion): FDASimple | Nodo=>{
-        if (fda.nodoIzquierda instanceof FDASimple) {
-            return fda.nodoIzquierda
-        }
-        if (fda.nodoIzquierda instanceof FDAContatenacion) {
-            return traerUltimoAlaIzquierda(fda.nodoIzquierda)
-        }
-        if (fda.nodoIzquierda instanceof FDACerraduraKleen||fda.nodoIzquierda instanceof FDAUnion) {
-          //A la izquierda del concatendado y a la izquierda de ese mismo
-            return fda.nodoIzquierda.nodoIzquierda
-        }
-      }
+      
 
       if (afnd.nodoArriba instanceof FDAContatenacion) {
-        const ultimoArribaDerecha = traerUltimoAlaDerecha(afnd.nodoArriba)
+        const ultimoArribaDerecha = this.traerUltimoAlaDerecha(afnd.nodoArriba)
         filaArribaDerecha = new FilaTabla(ultimoArribaDerecha.nodoDerecha.numeroNodo+" IN")
-        filaArribaDerecha.setValue({caracter:this.epsilon,content:afnd.nodoDerecha.numeroNodo}) 
+        filaArribaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
 
-        const ultimoArribaIzquierda = traerUltimoAlaIzquierda(afnd.nodoArriba)
+        const ultimoArribaIzquierda = this.traerUltimoAlaIzquierda(afnd.nodoArriba)
         filaArribaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" IN")
-        filaArribaIzquierda.setValue({caracter:this.epsilon,content:ultimoArribaIzquierda.numeroNodo}) 
+        filaArribaIzquierda.setValue({caracter:this.epsilon,apuntaA:ultimoArribaIzquierda.numeroNodo}) 
 
 
       }
       if (afnd.nodoArriba instanceof FDASimple) {
         filaArribaDerecha = new FilaTabla(afnd.nodoArriba.nodoDerecha.numeroNodo+" IN")
-        filaArribaDerecha.setValue({caracter:this.epsilon,content:afnd.nodoDerecha.numeroNodo}) 
+        filaArribaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
         filaArribaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" IN")
-        filaArribaIzquierda.setValue({caracter:this.epsilon,content:afnd.nodoArriba.numeroNodo}) 
+        filaArribaIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodoArriba.numeroNodo}) 
       }
 
       if (afnd.nodoArriba instanceof FDAUnion) {
         filaArribaDerecha = new FilaTabla(afnd.nodoArriba.nodoDerecha.numeroNodo+" IN")
-        filaArribaDerecha.setValue({caracter:this.epsilon,content:afnd.nodoDerecha.numeroNodo}) 
+        filaArribaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
 
         filaArribaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" IN")
-        filaArribaIzquierda.setValue({caracter:this.epsilon,content:afnd.nodoArriba.nodoIzquierda.numeroNodo}) 
+        filaArribaIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodoArriba.nodoIzquierda.numeroNodo}) 
       }
+
+     /*  if (afnd.nodoArriba instanceof FDACerraduraKleen) {
+        filaArribaDerecha = new FilaTabla(afnd.nodoArriba.nodoDerecha.numeroNodo+" IN")
+        filaArribaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
+
+        filaArribaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" IN")
+        filaArribaIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodoArriba.nodoIzquierda.numeroNodo}) 
+      } */
 
 
       if (afnd.nodoAbajo instanceof FDAContatenacion) {
-        const ultimoAbajoDerecha = traerUltimoAlaDerecha(afnd.nodoAbajo)
+        const ultimoAbajoDerecha = this.traerUltimoAlaDerecha(afnd.nodoAbajo)
         filaAbajoDerecha = new FilaTabla(ultimoAbajoDerecha.nodoDerecha.numeroNodo+" IN",)
-        filaAbajoDerecha.setValue({caracter:this.epsilon,content:afnd.nodoDerecha.numeroNodo}) 
+        filaAbajoDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
 
 
-        const ultimoAbajoIzquierda = traerUltimoAlaIzquierda(afnd.nodoAbajo)
+        const ultimoAbajoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodoAbajo)
         filaAbajoIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo + " IN")
-        filaAbajoIzquierda.setValue({caracter:this.epsilon,content:ultimoAbajoIzquierda.numeroNodo})
+        filaAbajoIzquierda.setValue({caracter:this.epsilon,apuntaA:ultimoAbajoIzquierda.numeroNodo})
 
       }
       if (afnd.nodoAbajo instanceof FDASimple) {
         console.log("es simple")
         filaAbajoDerecha = new FilaTabla(afnd.nodoAbajo.nodoDerecha.numeroNodo+" IN")
-        filaAbajoDerecha.setValue({caracter:this.epsilon,content:afnd.nodoDerecha.numeroNodo}) 
+        filaAbajoDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
 
          filaAbajoIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" IN")
-        filaAbajoIzquierda.setValue({caracter:this.epsilon,content:afnd.nodoAbajo.numeroNodo}) 
+        filaAbajoIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodoAbajo.numeroNodo}) 
       }
 
       if (afnd.nodoAbajo instanceof FDAUnion) {
         console.log("es  UNION")
 
         filaAbajoDerecha = new FilaTabla(afnd.nodoAbajo.nodoDerecha.numeroNodo+" IN")
-        filaAbajoDerecha.setValue({caracter:this.epsilon,content:afnd.nodoDerecha.numeroNodo}) 
+        filaAbajoDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo}) 
 
         filaAbajoIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" IN")
-        filaAbajoIzquierda.setValue({caracter:this.epsilon,content:afnd.nodoAbajo.nodoIzquierda.numeroNodo}) 
+        filaAbajoIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodoAbajo.nodoIzquierda.numeroNodo}) 
       }
 
      
@@ -437,7 +447,56 @@ class Thompson {
       
     }
     if (afnd instanceof FDACerraduraKleen) {
+      console.log("ES UNA CERRADURA",{afnd})
+
+      
+
+      let filaDerecha:FilaTabla
+      let filaIzquierda:FilaTabla
+      let filaCentro:FilaTabla
+
+      if (afnd.nodo instanceof FDASimple) {
+        filaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" KLENN")
+        filaIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodo.numeroNodo})
+        
+        filaDerecha = new FilaTabla(afnd.nodo.nodoDerecha.numeroNodo+" KLENN")
+        filaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo})
+        
+        filaCentro=new FilaTabla(afnd.nodo.nodoDerecha.numeroNodo+" KLENN")
+        filaCentro.setValue({caracter:this.epsilon,apuntaA:afnd.nodo.numeroNodo})
+      }
+
+      if (afnd.nodo instanceof FDAContatenacion) {
+        const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodo)
+        filaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" KLENN")
+        filaIzquierda.setValue({caracter:this.epsilon,apuntaA:ultimoIzquierda.numeroNodo})
+        
+        const ultimoDerecha = this.traerUltimoAlaDerecha(afnd.nodo)
+        filaDerecha = new FilaTabla(ultimoDerecha.numeroNodo+" KLENN")
+        filaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo})
+        
+        filaCentro=new FilaTabla(ultimoDerecha.numeroNodo+" KLENN")
+        filaCentro.setValue({caracter:this.epsilon,apuntaA:ultimoIzquierda.numeroNodo})
+      }
+      if (afnd.nodo instanceof FDAUnion) {
+        filaIzquierda = new FilaTabla(afnd.nodoIzquierda.numeroNodo+" KLENN")
+        filaIzquierda.setValue({caracter:this.epsilon,apuntaA:afnd.nodo.nodoIzquierda.numeroNodo})
+        
+        filaDerecha = new FilaTabla(afnd.nodo.nodoDerecha.numeroNodo+" KLENN")
+        filaDerecha.setValue({caracter:this.epsilon,apuntaA:afnd.nodoDerecha.numeroNodo})
+        
+        filaCentro=new FilaTabla(afnd.nodo.nodoDerecha.numeroNodo+" KLENN")
+        filaCentro.setValue({caracter:this.epsilon,apuntaA:afnd.nodo.nodoIzquierda.numeroNodo})
+      }
+
+       $tabla.innerHTML += filaIzquierda.getTag()
+      $tabla.innerHTML += filaDerecha.getTag()
+      $tabla.innerHTML += filaCentro.getTag()
+
+
+
       this.generarFilasTablaFDA(afnd.nodo)
+      
     }
     if (afnd instanceof FDASimple) {
       //Solo son dos nodos
@@ -445,10 +504,10 @@ class Thompson {
 
       
       if (afnd.nodoDerecha instanceof FDAContatenacion) {
-        fila.setValue({caracter:afnd.caracter,content:afnd.nodoDerecha.nodoIzquierda.numeroNodo}) 
+        fila.setValue({caracter:afnd.caracter,apuntaA:afnd.nodoDerecha.nodoIzquierda.numeroNodo}) 
       }
       else{
-        fila.setValue({caracter:afnd.caracter,content:afnd.nodoDerecha.numeroNodo}) 
+        fila.setValue({caracter:afnd.caracter,apuntaA:afnd.nodoDerecha.numeroNodo}) 
       }
 
         $tabla.innerHTML += fila.getTag()
@@ -459,6 +518,7 @@ class Thompson {
   generarTablaFDA (
     afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen
   ) {
+    console.log("Generar tabla",{afnd})
     this.generarTitulosTablaFDA()
     this.generarFilasTablaFDA(afnd)
   }
@@ -570,7 +630,6 @@ class Thompson {
     nodoDerecho: FDACerraduraKleen | FDASimple | FDAContatenacion | FDAUnion,
     numeroNodo: number = ++this.nodos
   ): FDASimple | FDAContatenacion | FDAUnion => {
-    console.log(numeroNodo)
     /*     const nodoIzquierdo:FDA
     const nodoDerecho:FDA */
     let operacion: Operaciones = Operaciones.Contatenacion
@@ -583,10 +642,9 @@ class Thompson {
     let cerraduraLimpia: string[]
 
     if (entrada.length === 1) {
-      console.log('ES SIMPLE', { entrada })
       return new FDASimple(entrada[0],numeroNodo)
     } else if (this.buscarCerradura(entrada).existe) {
-      console.log('ES CERRADURA')
+      console.log("ES CERRADURA")
       const cerradura = this.buscarCerradura(entrada)
 
       const adelanteDeCerradura = cerradura.index + 1
