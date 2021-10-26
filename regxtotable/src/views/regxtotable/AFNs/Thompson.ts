@@ -4,6 +4,10 @@ import FDAContatenacion from './FDAConcatenacion'
 import FDASimple from './FDASimple'
 import FDAUnion from './FDAUnion'
 import Nodo from './Nodo'
+/*
+ Errores:
+ (a|a)*|(a|b)*
+*/
 export class FilaTabla {
   fila = {}
   tag: string = ``
@@ -21,7 +25,6 @@ export class FilaTabla {
     if (this.fila.hasOwnProperty(datos.caracter)) {
       // @ts-ignore
       this.fila[datos.caracter] = datos.apuntaA
-
     } else {
       throw new Error('No existe el caracter en el alfabeto')
     }
@@ -33,6 +36,7 @@ export class FilaTabla {
 
 class Thompson {
   private union: string = '|'
+  private cerraduraKleen: string = '*'
   private epsilon: string = 'ε'
   private parentecisIzquierdo: string = '('
   private parentecisDerecho: string = ')'
@@ -42,6 +46,7 @@ class Thompson {
   filasTabla: FilaTabla[] = []
 
   nodos: number = 0
+  contadorParaSaberFinales: number = 0
 
   constructor (datos: { entrada: string[]; alfabeto: string[] }) {
     this.alfabeto = datos.alfabeto
@@ -50,7 +55,11 @@ class Thompson {
     this.generarTablaFDA(this.fda)
   }
 
-  generarStringFDA (
+  agregarFilasATabla (filas: FilaTabla[]) {
+    filas.forEach(fila => this.filasTabla.push(fila))
+  }
+
+  private generarStringFDA (
     afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen
   ) {
     if (afnd instanceof FDAContatenacion) {
@@ -59,56 +68,32 @@ class Thompson {
     }
     if (afnd instanceof FDAUnion) {
       this.generarStringFDA(afnd.nodoArriba)
-      this.fdaProcesado += '|'
+      this.fdaProcesado += this.union
       this.generarStringFDA(afnd.nodoAbajo)
     }
     if (afnd instanceof FDACerraduraKleen) {
-      this.fdaProcesado += '('
+      this.fdaProcesado += this.parentecisIzquierdo
       this.generarStringFDA(afnd.nodo)
-      this.fdaProcesado += ')*'
+      this.fdaProcesado += this.parentecisDerecho + this.cerraduraKleen
     }
     if (afnd instanceof FDASimple) {
       this.fdaProcesado += afnd.caracter
     }
   }
 
-  traerUltimoAlaDerecha = (fda: FDAContatenacion): FDASimple | Nodo => {
-    if (fda.nodoDerecha instanceof FDASimple) {
-      return fda.nodoDerecha
-    }
-    if (fda.nodoDerecha instanceof FDAContatenacion) {
-      return this.traerUltimoAlaDerecha(fda.nodoDerecha)
-    }
-    if (
-      fda.nodoDerecha instanceof FDACerraduraKleen ||
-      fda.nodoDerecha instanceof FDAUnion
-    ) {
-      return fda.nodoDerecha.nodoDerecha
-    }
-    throw new Error('No he encontrado nodo a la derecha')
-  }
-
-  traerUltimoAlaIzquierda = (fda: FDAContatenacion): FDASimple | Nodo => {
-    if (fda.nodoIzquierda instanceof FDASimple) {
-      return fda.nodoIzquierda
-    }
-    if (fda.nodoIzquierda instanceof FDAContatenacion) {
-      return this.traerUltimoAlaIzquierda(fda.nodoIzquierda)
-    }
-    if (
-      fda.nodoIzquierda instanceof FDACerraduraKleen ||
-      fda.nodoIzquierda instanceof FDAUnion
-    ) {
-      //A la izquierda del concatendado y a la izquierda de ese mismo
-      return fda.nodoIzquierda.nodoIzquierda
-    }
-    throw new Error('No he encontrado nodo a la izquierda')
-  }
-
   generarFilasTablaFDA (
-    afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen
+    afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen,
+    contador: number = this.contadorParaSaberFinales
   ) {
+    let letraFinal = ''
+    console.log(this.contadorParaSaberFinales)
+    if (this.contadorParaSaberFinales === 0) {
+      letraFinal = ' Inicio '
+    }
+
     ///GENERAR FILAS CONCATENACION
+    this.contadorParaSaberFinales++
+
     if (afnd instanceof FDAContatenacion) {
       this.generarFilasTablaFDA(afnd.nodoIzquierda)
       this.generarFilasTablaFDA(afnd.nodoDerecha)
@@ -116,13 +101,15 @@ class Thompson {
     ///GENERAR FILAS UNION
 
     if (afnd instanceof FDAUnion) {
-      let filaArribaDerecha: FilaTabla
-      let filaAbajoDerecha: FilaTabla
-      let filaArribaIzquierda: FilaTabla
-      let filaAbajoIzquierda: FilaTabla
+      let filaArribaDerecha: FilaTabla | null = null
+      let filaAbajoDerecha: FilaTabla | null = null
+      let filaArribaIzquierda: FilaTabla | null = null
+      let filaAbajoIzquierda: FilaTabla | null = null
 
       if (afnd.nodoArriba instanceof FDAContatenacion) {
-        const ultimoArribaDerecha = this.traerUltimoAlaDerecha(afnd.nodoArriba)
+        const ultimoArribaDerecha = FDAContatenacion.traerUltimoAlaDerecha(
+          afnd.nodoArriba
+        )
         filaArribaDerecha = new FilaTabla(
           ultimoArribaDerecha.nodoDerecha?.numeroNodo + '',
           this.alfabeto
@@ -132,11 +119,11 @@ class Thompson {
           apuntaA: afnd.nodoDerecha.numeroNodo
         })
 
-        const ultimoArribaIzquierda = this.traerUltimoAlaIzquierda(
+        const ultimoArribaIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
           afnd.nodoArriba
         )
         filaArribaIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' ',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaArribaIzquierda.setValue({
@@ -154,7 +141,7 @@ class Thompson {
           apuntaA: afnd.nodoDerecha.numeroNodo
         })
         filaArribaIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' ',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaArribaIzquierda.setValue({
@@ -163,7 +150,7 @@ class Thompson {
         })
       }
 
-      if (afnd.nodoArriba instanceof FDAUnion) {
+      if (afnd.nodoArriba instanceof FDAUnion||afnd.nodoArriba instanceof FDACerraduraKleen) {
         filaArribaDerecha = new FilaTabla(
           afnd.nodoArriba.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
@@ -174,7 +161,7 @@ class Thompson {
         })
 
         filaArribaIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' ',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaArribaIzquierda.setValue({
@@ -184,7 +171,9 @@ class Thompson {
       }
 
       if (afnd.nodoAbajo instanceof FDAContatenacion) {
-        const ultimoAbajoDerecha = this.traerUltimoAlaDerecha(afnd.nodoAbajo)
+        const ultimoAbajoDerecha = FDAContatenacion.traerUltimoAlaDerecha(
+          afnd.nodoAbajo
+        )
         filaAbajoDerecha = new FilaTabla(
           ultimoAbajoDerecha.nodoDerecha?.numeroNodo + ' ',
           this.alfabeto
@@ -194,11 +183,11 @@ class Thompson {
           apuntaA: afnd.nodoDerecha.numeroNodo
         })
 
-        const ultimoAbajoIzquierda = this.traerUltimoAlaIzquierda(
+        const ultimoAbajoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
           afnd.nodoAbajo
         )
         filaAbajoIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' ',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaAbajoIzquierda.setValue({
@@ -218,7 +207,7 @@ class Thompson {
         })
 
         filaAbajoIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' ',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaAbajoIzquierda.setValue({
@@ -227,7 +216,7 @@ class Thompson {
         })
       }
 
-      if (afnd.nodoAbajo instanceof FDAUnion) {
+      if (afnd.nodoAbajo instanceof FDAUnion||afnd.nodoAbajo instanceof FDACerraduraKleen) {
         console.log('es  union')
 
         filaAbajoDerecha = new FilaTabla(
@@ -240,7 +229,7 @@ class Thompson {
         })
 
         filaAbajoIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' ',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaAbajoIzquierda.setValue({
@@ -248,27 +237,42 @@ class Thompson {
           apuntaA: afnd.nodoAbajo.nodoIzquierda.numeroNodo
         })
       }
-      // @ts-ignore
-      this.filasTabla.push(filaArribaDerecha)
-      // @ts-ignore
-      this.filasTabla.push(filaAbajoDerecha)
-      // @ts-ignore
-      this.filasTabla.push(filaArribaIzquierda)
-      // @ts-ignore
-      this.filasTabla.push(filaAbajoIzquierda)
+
+      if (
+        filaArribaDerecha &&
+        filaAbajoDerecha &&
+        filaArribaIzquierda &&
+        filaAbajoIzquierda
+      ) {
+        this.agregarFilasATabla([
+          filaArribaDerecha,
+          filaAbajoDerecha,
+          filaArribaIzquierda,
+          filaAbajoIzquierda
+        ])
+      } else {
+        if (!filaArribaDerecha)
+          throw new Error('filaArribaDerecha No está definido')
+        if (!filaAbajoDerecha)
+          throw new Error('filaAbajoDerecha No está definido')
+        if (!filaArribaIzquierda)
+          throw new Error('filaArribaIzquierda No está definido')
+        if (!filaAbajoIzquierda)
+          throw new Error('filaAbajoIzquierda No está definido')
+      }
 
       this.generarFilasTablaFDA(afnd.nodoArriba)
       this.generarFilasTablaFDA(afnd.nodoAbajo)
     }
     ///GENERAR FILAS KLEEN
     if (afnd instanceof FDACerraduraKleen) {
-      let filaDerecha: FilaTabla
-      let filaIzquierda: FilaTabla
-      let filaCentro: FilaTabla
-      let filaGrande: FilaTabla
+      let filaDerecha: FilaTabla | null = null
+      let filaIzquierda: FilaTabla | null = null
+      let filaCentro: FilaTabla | null = null
+      let filaGrande: FilaTabla | null = null
 
       filaGrande = new FilaTabla(
-        afnd.nodoIzquierda.numeroNodo + ' KLENN 1',
+        afnd.nodoIzquierda.numeroNodo + ' ',
         this.alfabeto
       )
 
@@ -280,7 +284,9 @@ class Thompson {
       }
 
       if (afnd.nodoDerecha instanceof FDAContatenacion) {
-        const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodoDerecha)
+        const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
+          afnd.nodoDerecha
+        )
         filaGrande.setValue({
           caracter: this.epsilon,
           apuntaA: ultimoIzquierda.numeroNodo
@@ -299,7 +305,7 @@ class Thompson {
       if (afnd.nodo instanceof FDASimple) {
         console.log('No debo estar aquí')
         filaIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' KLENN 2',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaIzquierda.setValue({
@@ -308,12 +314,14 @@ class Thompson {
         })
 
         filaDerecha = new FilaTabla(
-          afnd.nodo.nodoDerecha.numeroNodo + ' KLENN 3',
+          afnd.nodo.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
 
         if (afnd.nodoDerecha instanceof FDAContatenacion) {
-          const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodoDerecha)
+          const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
+            afnd.nodoDerecha
+          )
           filaDerecha.setValue({
             caracter: this.epsilon,
             apuntaA: ultimoIzquierda.numeroNodo
@@ -336,7 +344,7 @@ class Thompson {
         }
 
         filaCentro = new FilaTabla(
-          afnd.nodo.nodoDerecha.numeroNodo + ' KLENN 4',
+          afnd.nodo.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
         filaCentro.setValue({
@@ -347,9 +355,11 @@ class Thompson {
 
       if (afnd.nodo instanceof FDAContatenacion) {
         console.log('No debo estar aquí')
-        const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodo)
+        const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
+          afnd.nodo
+        )
         filaIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' KLENN 5',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaIzquierda.setValue({
@@ -357,15 +367,17 @@ class Thompson {
           apuntaA: ultimoIzquierda.numeroNodo
         })
 
-        const ultimoDerecha = this.traerUltimoAlaDerecha(afnd.nodo)
+        const ultimoDerecha = FDAContatenacion.traerUltimoAlaDerecha(afnd.nodo)
 
         filaDerecha = new FilaTabla(
-          ultimoDerecha.numeroNodo + ' KLENN 6',
+          ultimoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
 
         if (afnd.nodoDerecha instanceof FDAContatenacion) {
-          const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodoDerecha)
+          const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
+            afnd.nodoDerecha
+          )
           filaDerecha.setValue({
             caracter: this.epsilon,
             apuntaA: ultimoIzquierda.numeroNodo
@@ -388,7 +400,7 @@ class Thompson {
         }
 
         filaCentro = new FilaTabla(
-          ultimoDerecha.numeroNodo + ' KLENN 7',
+          ultimoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
         filaCentro.setValue({
@@ -399,7 +411,7 @@ class Thompson {
 
       if (afnd.nodo instanceof FDAUnion) {
         filaIzquierda = new FilaTabla(
-          afnd.nodoIzquierda.numeroNodo + ' KLENN 8',
+          afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
         )
         filaIzquierda.setValue({
@@ -408,19 +420,21 @@ class Thompson {
         })
 
         filaDerecha = new FilaTabla(
-          afnd.nodo.nodoDerecha.numeroNodo + ' KLENN 9',
+          afnd.nodo.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
-        
+
         if (afnd.nodoDerecha instanceof Nodo) {
           filaDerecha.setValue({
             caracter: this.epsilon,
-            apuntaA: afnd.nodoDerecha.numeroNodo+" F"
+            apuntaA: afnd.nodoDerecha.numeroNodo + ' F'
           })
         }
 
         if (afnd.nodoDerecha instanceof FDAContatenacion) {
-          const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodoDerecha)
+          const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
+            afnd.nodoDerecha
+          )
           filaDerecha.setValue({
             caracter: this.epsilon,
             apuntaA: ultimoIzquierda.numeroNodo
@@ -430,7 +444,6 @@ class Thompson {
           afnd.nodoDerecha instanceof FDAUnion ||
           afnd.nodoDerecha instanceof FDACerraduraKleen
         ) {
-
           filaDerecha.setValue({
             caracter: this.epsilon,
             apuntaA: afnd.nodoDerecha.nodoIzquierda.numeroNodo
@@ -444,13 +457,15 @@ class Thompson {
         }
 
         filaCentro = new FilaTabla(
-          afnd.nodo.nodoDerecha.numeroNodo + ' KLENN 10',
+          afnd.nodo.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
         console.log({ filaCentro })
         if (afnd.nodo instanceof FDAContatenacion) {
           console.log('cambio1')
-          const ultimoIzquierda = this.traerUltimoAlaIzquierda(afnd.nodo)
+          const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
+            afnd.nodo
+          )
           filaCentro.setValue({
             caracter: this.epsilon,
             apuntaA: ultimoIzquierda.numeroNodo
@@ -478,33 +493,38 @@ class Thompson {
           })
         }
       }
-      //
-
       if (afnd.tipo === Cerradura.Kleen) {
-        // @ts-ignore
-        this.filasTabla.push(filaCentro)
-        // @ts-ignore
-        this.filasTabla.push(filaIzquierda)
-        // @ts-ignore
-        this.filasTabla.push(filaDerecha)
-        // @ts-ignore
-        this.filasTabla.push(filaGrande)
+        if (filaCentro && filaIzquierda && filaDerecha && filaGrande) {
+          this.agregarFilasATabla([
+            filaCentro,
+            filaIzquierda,
+            filaDerecha,
+            filaGrande
+          ])
+        } else {
+          if (!filaCentro) throw new Error('filaCentro No está definido')
+          if (!filaIzquierda) throw new Error('filaIzquierda No está definido')
+          if (!filaDerecha) throw new Error('filaDerecha No está definido')
+          if (!filaGrande) throw new Error('filaGrande No está definido')
+        }
       }
       if (afnd.tipo === Cerradura.Opcional) {
-        // @ts-ignore
-        this.filasTabla.push(filaIzquierda)
-        // @ts-ignore
-        this.filasTabla.push(filaDerecha)
-        // @ts-ignore
-        this.filasTabla.push(filaGrande)
+        if (filaIzquierda && filaDerecha && filaGrande) {
+          this.agregarFilasATabla([filaIzquierda, filaDerecha, filaGrande])
+        } else {
+          if (!filaIzquierda) throw new Error('filaIzquierda No está definido')
+          if (!filaDerecha) throw new Error('filaDerecha No está definido')
+          if (!filaGrande) throw new Error('filaGrande No está definido')
+        }
       }
       if (afnd.tipo === Cerradura.Positiva) {
-        // @ts-ignore
-        this.filasTabla.push(filaIzquierda)
-        // @ts-ignore
-        this.filasTabla.push(filaDerecha)
-        // @ts-ignore
-        this.filasTabla.push(filaCentro)
+        if (filaIzquierda && filaDerecha && filaCentro) {
+          this.agregarFilasATabla([filaIzquierda, filaDerecha, filaCentro])
+        } else {
+          if (!filaIzquierda) throw new Error('filaIzquierda No está definido')
+          if (!filaDerecha) throw new Error('filaDerecha No está definido')
+          if (!filaCentro) throw new Error('filaCentro No está definido')
+        }
       }
 
       this.generarFilasTablaFDA(afnd.nodo)
@@ -513,7 +533,7 @@ class Thompson {
 
     if (afnd instanceof FDASimple) {
       //Solo son dos nodos
-      const fila = new FilaTabla(afnd.numeroNodo, this.alfabeto)
+      const fila:FilaTabla | null= new FilaTabla(afnd.numeroNodo, this.alfabeto)
 
       if (afnd.nodoDerecha instanceof FDAContatenacion) {
         fila.setValue({
@@ -527,7 +547,6 @@ class Thompson {
         })
       }
 
-      // @ts-ignore
       this.filasTabla.push(fila)
     }
   }
@@ -535,99 +554,6 @@ class Thompson {
     afnd: FDAContatenacion | FDAUnion | FDASimple | Nodo | FDACerraduraKleen
   ) {
     this.generarFilasTablaFDA(afnd)
-  }
-
-  encontrarParentesisIzquierdo = (entrada: string[]): number => {
-    let indexC = -1
-    entrada.find((caracter: string, index: number) => {
-      if (caracter === this.parentecisIzquierdo) {
-        indexC = index
-        return caracter
-      }
-    })
-    if (indexC === -1) {
-      throw new Error('Las clausuras requieren un parentesis de cierre')
-    }
-    return indexC
-  }
-
-  buscarCerradura = (
-    entrada: string[]
-  ): { existe: boolean; caracter: string; index: number; tipo: Cerradura } => {
-    let cerradura: {
-      existe: boolean
-      caracter: string
-      index: number
-      tipo: Cerradura
-    } = {
-      existe: false,
-      index: -1,
-      caracter: '',
-      tipo: Cerradura.Kleen
-    }
-    entrada.find((caracter: string, index: number) => {
-      if (caracter === Cerradura.Kleen) {
-        cerradura = {
-          existe: true,
-          caracter,
-          index,
-          tipo: Cerradura.Kleen
-        }
-        return caracter
-      }
-      if (caracter === Cerradura.Opcional) {
-        cerradura = {
-          existe: true,
-          caracter,
-          index,
-          tipo: Cerradura.Opcional
-        }
-        return caracter
-      }
-      if (caracter === Cerradura.Positiva) {
-        cerradura = {
-          existe: true,
-          caracter,
-          index,
-          tipo: Cerradura.Positiva
-        }
-        return caracter
-      }
-    })
-    return cerradura
-  }
-  buscarUnion = (entrada: string[]): { existe: boolean; index: number } => {
-    let union: {
-      existe: boolean
-      index: number
-    } = {
-      existe: false,
-      index: -1
-    }
-    entrada.find((caracter: string, index: number) => {
-      if (caracter === this.union) {
-        union = {
-          existe: true,
-          index
-        }
-        return caracter
-      }
-    })
-    return union
-  }
-  limpiarCerradura = (entrada: string[]): string[] => {
-    let seccionCerradura: string[]
-    entrada.pop()
-    const indexDerecho = entrada.length - 1
-    const final = entrada[indexDerecho]
-    const existenParentesis = final === this.parentecisDerecho
-    if (existenParentesis) {
-      const indexIzquierdo = this.encontrarParentesisIzquierdo(entrada)
-      seccionCerradura = entrada.slice(indexIzquierdo + 1, indexDerecho)
-    } else {
-      throw new Error('Las clausuras requieren parentesis')
-    }
-    return seccionCerradura
   }
   procesarEntrada = (
     entrada: string[],
@@ -652,16 +578,15 @@ class Thompson {
 
     if (entrada.length === 1) {
       return new FDASimple(entrada[0], numeroNodo)
-    } else if (this.buscarCerradura(entrada).existe) {
+    } else if (FDACerraduraKleen.buscarCerradura(entrada).existe) {
       console.log('ES CERRADURA')
-
-      const cerradura = this.buscarCerradura(entrada)
+      const cerradura = FDACerraduraKleen.buscarCerradura(entrada)
       const adelanteDeCerradura = cerradura.index + 1
 
       mitadIzquierda = entrada.slice(0, adelanteDeCerradura)
-      cerraduraLimpia = this.limpiarCerradura([...mitadIzquierda])
+      cerraduraLimpia = FDACerraduraKleen.limpiarCerradura([...mitadIzquierda])
 
-      const indexParetensisIzquierdo = this.encontrarParentesisIzquierdo(
+      const indexParetensisIzquierdo = FDACerraduraKleen.encontrarParentesisIzquierdo(
         entrada
       )
 
@@ -698,6 +623,7 @@ class Thompson {
           fdaDerecho = nodoDerecho
         } else {
           mitadDerecha = entrada.slice(adelanteDeCerradura, finalCadena)
+          console.log({mitadDerecha})
           if (mitadDerecha[0] === this.union) {
             operacion = Operaciones.Union
             mitadDerecha.shift()
@@ -718,9 +644,9 @@ class Thompson {
           fdaIzquierdo = nuevaCerradura
         }
       }
-    } else if (this.buscarUnion(entrada).existe) {
+    } else if (FDAUnion.buscarUnion(entrada).existe) {
       operacion = Operaciones.Union
-      const mitad: number = this.buscarUnion(entrada).index
+      const mitad: number = FDAUnion.buscarUnion(entrada).index
       mitadIzquierda = entrada.slice(0, mitad)
       fdaIzquierdo = this.procesarEntrada(mitadIzquierda, null)
 

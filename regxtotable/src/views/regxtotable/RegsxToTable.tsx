@@ -19,6 +19,8 @@ const RegsxToTable: React.FC<RegsxToTableProps> = () => {
   const [Afd, setAfd] = useState<Thompson | null>(null)
   const [descripciones, setDescripciones] = useState<Description[]>([])
 
+  const [haCambiado, setHaCambiado] = useState<boolean>(true)
+
   const caracteresReservados: string[] = [
     '*',
     '?',
@@ -33,11 +35,17 @@ const RegsxToTable: React.FC<RegsxToTableProps> = () => {
     async onChange ({ file }: { file: any }) {
       try {
         const nuevaExpresion: string | null = await leerArchivo(file)
-        if (nuevaExpresion) {
-          const expresion = nuevaExpresion.trim().split('')
-          if (validarExpresion(expresion)) {
-            setExpresion(expresion)
+        if (nuevaExpresion!==expresion) {
+          setHaCambiado(true)
+
+          if (nuevaExpresion) {
+            const expresion = nuevaExpresion.trim().split('')
+            if (validarExpresion(expresion)) {
+              setExpresion(expresion)
+            }
           }
+        }else{
+          setHaCambiado(false)
         }
       } catch (error:any) {
         message.error(error.message)
@@ -78,7 +86,6 @@ const RegsxToTable: React.FC<RegsxToTableProps> = () => {
 
   const validarAlfabeto = (entrada: string[]): boolean => {
     let isValid = true
-
     entrada.map((caracter: string) => {
       const esUnCaracterInvalido = caracteresReservados.includes(caracter)
       if (esUnCaracterInvalido) {
@@ -129,6 +136,7 @@ const RegsxToTable: React.FC<RegsxToTableProps> = () => {
     })
   }
   const onProcesar = () => {
+    setHaCambiado(false)
     try {
       if (alfabeto && expresion) {
         const AFND: Thompson = new Thompson({
@@ -142,27 +150,40 @@ const RegsxToTable: React.FC<RegsxToTableProps> = () => {
             description: AFND.fdaProcesado
           }
         ])
+        console.log({AFND})
         setAfd(AFND)
       }
     } catch (error:any) {
       message.error(error.message)
     }
   }
+  const onLimpiar = () => {
+   setAlfabeto(null)
+   setExpresion(null)
+   setAfd(null)
+   setDescripciones([])
+  }
 
   return (
     <>
-      <div className='h-screen w-screen '>
-        {/* <PageHeader
- className="fixed bottom-0 left-0 right-0"
-backIcon={null}
-    onBack={() => null}
-    title="Expresión regular a tabla de transiciones"
-  /> */}
+      <div className='h-screen w-screen  '>
+        <div className='fixed top-0 left-0  right-0 w-full'>
+
+        <PageHeader
+ className=""
+ backIcon={null}
+ onBack={() => null}
+ title=""
+ subTitle="Expresión regular a tabla de transiciones"
+ />
+ </div>
         <div className=' h-full  flex'>
           <div className='h-full w-3-6  flex justify-center flex-col items-center'>
             <Space direction='vertical'>
               <Space>
-                <Upload {...propsExpresion}>
+                <Upload
+                fileList={[]}
+                {...propsExpresion}>
                   <Button
                     disabled={alfabeto === null}
                     icon={<UploadOutlined />}
@@ -170,8 +191,10 @@ backIcon={null}
                     Sube tu expresión regular
                   </Button>
                 </Upload>
-                <Upload {...propsAlphabeth}>
-                  <Button icon={<UploadOutlined />}>Sube tu alfabeto</Button>
+                <Upload
+                fileList={[]}
+                 {...propsAlphabeth}>
+                  <Button icon={<UploadOutlined />} disabled={alfabeto!==null}>Sube tu alfabeto</Button>
                 </Upload>
               </Space>
               <Descriptions column={1} bordered>
@@ -187,13 +210,20 @@ backIcon={null}
                   </Descriptions.Item>
                 ))}
               </Descriptions>
-              <Button
+              {(!Afd||haCambiado)&&<Button
                 onClick={onProcesar}
                 className='w-full'
-                disabled={alfabeto === null}
+                disabled={alfabeto === null||expresion === null}
               >
                 Procesar cadena
-              </Button>
+              </Button>}
+              {Afd&&<Button
+                onClick={onLimpiar}
+                className='w-full'
+                type="primary"
+              >
+                Limpiar datos
+              </Button>}
             </Space>
           </div>
           <div className='h-full flex-col justify-center items-center w-3-6 flex  p-4'>

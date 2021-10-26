@@ -8,7 +8,7 @@ import Nodo from "./Nodo"
 class FDAUnion implements FDA {
   caracter: string
   numeroNodo: number = random(0, 1000)
-
+  static union:string = '|'
   //Arriba
   nodoAbajo: FDASimple | FDAContatenacion | Nodo | FDACerraduraKleen
   nodoArriba: FDASimple | FDAContatenacion | Nodo | FDACerraduraKleen
@@ -50,6 +50,25 @@ class FDAUnion implements FDA {
   }
   setNodoArriba (nodoArriba: Nodo | FDAContatenacion | FDASimple) {
     this.nodoArriba = nodoArriba
+  }
+  static buscarUnion = (entrada: string[]): { existe: boolean; index: number } => {
+    let union: {
+      existe: boolean
+      index: number
+    } = {
+      existe: false,
+      index: -1
+    }
+    entrada.find((caracter: string, index: number) => {
+      if (caracter === this.union) {
+        union = {
+          existe: true,
+          index
+        }
+        return caracter
+      }
+    })
+    return union
   }
 }
 

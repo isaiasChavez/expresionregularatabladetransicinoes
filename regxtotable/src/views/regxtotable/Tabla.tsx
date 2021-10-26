@@ -51,7 +51,7 @@ const Tabla: React.FC<TablaProps> = ({ alfabeto,Afd }) => {
     setcolumns(newColumns)
     setRows(newRows)
 
-  }, [])
+  }, [Afd])
  
   return (
     <>
