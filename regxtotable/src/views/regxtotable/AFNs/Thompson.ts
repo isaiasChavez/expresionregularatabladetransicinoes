@@ -92,7 +92,6 @@ class Thompson {
     contador: number = this.contadorParaSaberFinales
   ) {
     let letraFinal = ''
-    console.log(this.contadorParaSaberFinales)
     if (this.contadorParaSaberFinales === 0) {
       letraFinal = ' Inicio '
     }
@@ -205,7 +204,6 @@ class Thompson {
         })
       }
       if (afnd.nodoAbajo instanceof FDASimple) {
-        console.log('es simple')
         filaAbajoDerecha = new FilaTabla(
           afnd.nodoAbajo.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
@@ -229,7 +227,6 @@ class Thompson {
         afnd.nodoAbajo instanceof FDAUnion ||
         afnd.nodoAbajo instanceof FDACerraduraKleen
       ) {
-        console.log('es  union')
 
         filaAbajoDerecha = new FilaTabla(
           afnd.nodoAbajo.nodoDerecha.numeroNodo + ' ',
@@ -315,7 +312,6 @@ class Thompson {
       }
 
       if (afnd.nodo instanceof FDASimple) {
-        console.log('No debo estar aquí')
         filaIzquierda = new FilaTabla(
           afnd.nodoIzquierda.numeroNodo + letraFinal,
           this.alfabeto
@@ -472,9 +468,7 @@ class Thompson {
           afnd.nodo.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
         )
-        console.log({ filaCentro })
         if (afnd.nodo instanceof FDAContatenacion) {
-          console.log('cambio1')
           const ultimoIzquierda = FDAContatenacion.traerUltimoAlaIzquierda(
             afnd.nodo
           )
@@ -484,30 +478,25 @@ class Thompson {
           })
         }
         if (afnd.nodo instanceof FDAUnion) {
-          console.log('cambio2')
           filaCentro.setValue({
             caracter: this.epsilon,
             apuntaA: afnd.nodo.nodoIzquierda.numeroNodo
           })
         }
         if (afnd.nodo instanceof FDACerraduraKleen) {
-          console.log('cambio3')
           filaCentro.setValue({
             caracter: this.epsilon,
             apuntaA: afnd.nodo.nodoIzquierda.numeroNodo
           })
         }
         if (afnd.nodo instanceof FDASimple) {
-          console.log('cambio4')
           filaCentro.setValue({
             caracter: this.epsilon,
             apuntaA: afnd.nodo.numeroNodo
           })
         }
       }
-      console.log("====>",afnd.tipo,Cerradura.Kleen,afnd.tipo === Cerradura.Kleen)
       if (afnd.tipo === Cerradura.Kleen) {
-       console.log("==>",{filaGrande})
         if (filaCentro && filaIzquierda && filaDerecha && filaGrande) {
           this.agregarFilasATabla([
             filaCentro,
@@ -599,6 +588,7 @@ class Thompson {
       console.log('ES CERRADURA')
 
       const cerradura = FDACerraduraKleen.buscarCerradura(entrada)
+      console.log("==>  ",numeroNodo,{cerradura})
       const cerraduraEstaAlFinal = cerradura.index === entrada.length - 1
 
       const indexParetensisIzquierdo = FDACerraduraKleen.encontrarParentesisIzquierdo(
@@ -608,7 +598,6 @@ class Thompson {
 
       const soloEsCerradura = cerraduraEstaAlInicio && cerraduraEstaAlFinal
 
-      console.log({cerraduraEstaAlFinal,cerraduraEstaAlInicio,soloEsCerradura})
 
       if (!cerraduraEstaAlFinal) {
         mitadIzquierda = entrada.slice(0, cerradura.index + 1)
@@ -619,13 +608,11 @@ class Thompson {
           mitadDerecha.shift()
         }
 
-        console.log({mitadDerecha})
         fdaDerecho = this.procesarEntrada(mitadDerecha, null)
         fdaIzquierdo = this.procesarEntrada(mitadIzquierda, null)
       } else if (!soloEsCerradura) {
         mitadIzquierda = entrada.slice(0, indexParetensisIzquierdo)
         mitadDerecha = entrada.slice(indexParetensisIzquierdo, finalCadena)
-        console.log("MITAD DERECHA",{mitadDerecha})
         const hayUnaUnionAlFinal =
           mitadIzquierda[mitadIzquierda.length - 1] === this.union
         if (hayUnaUnionAlFinal) {

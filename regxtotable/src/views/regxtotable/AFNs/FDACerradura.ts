@@ -1,10 +1,10 @@
-import { random } from "../../../utils"
-import { Cerradura } from "../types"
-import FDA from "./FDA.interface"
-import FDAContatenacion from "./FDAConcatenacion"
-import FDASimple from "./FDASimple"
-import FDAUnion from "./FDAUnion"
-import Nodo from "./Nodo"
+import { random } from '../../../utils'
+import { Cerradura, Operaciones } from '../types'
+import FDA from './FDA.interface'
+import FDAContatenacion from './FDAConcatenacion'
+import FDASimple from './FDASimple'
+import FDAUnion from './FDAUnion'
+import Nodo from './Nodo'
 
 class FDACerraduraKleen implements FDA {
   caracter: string
@@ -26,12 +26,12 @@ class FDACerraduraKleen implements FDA {
   })
   nodo: FDASimple | FDAContatenacion | FDAUnion | Nodo | FDACerraduraKleen
 
-  tipo:Cerradura
+  tipo: Cerradura
   constructor (
     caracter: string,
     nodo: FDASimple | FDAContatenacion | FDAUnion,
     numeroNodo: number,
-    tipo:Cerradura
+    tipo: Cerradura
   ) {
     this.nodo = nodo
     this.caracter = caracter
@@ -45,8 +45,8 @@ class FDACerraduraKleen implements FDA {
   }
 
   static encontrarParentesisIzquierdo = (entrada: string[]): number => {
-    console.log("encontrarParentesisIzquierdo:",{entrada})
-    
+    console.log('encontrarParentesisIzquierdo:', { entrada })
+
     let indexC = -1
     entrada.find((caracter: string, index: number) => {
       if (caracter === this.parentecisIzquierdo) {
@@ -54,9 +54,11 @@ class FDACerraduraKleen implements FDA {
         return caracter
       }
     })
-    
+
     if (indexC === -1) {
-      throw new Error('Las clausuras requieren un parentesis de cierre '+entrada.join())
+      throw new Error(
+        'Las clausuras requieren un parentesis de cierre ' + entrada.join()
+      )
     }
     return indexC
   }
@@ -64,7 +66,7 @@ class FDACerraduraKleen implements FDA {
     entrada.pop()
     entrada.pop()
     entrada.shift()
-    
+
     return entrada
   }
   static buscarCerradura = (
@@ -81,39 +83,48 @@ class FDACerraduraKleen implements FDA {
       caracter: '',
       tipo: Cerradura.Kleen
     }
-    for (let index = entrada.length; index >= 0; index--) {
-      const caracter = entrada[index];
-      if (caracter === Cerradura.Kleen) {
-        cerradura = {
-          existe: true,
-          caracter,
-          index,
-          tipo: Cerradura.Kleen
-        }
-        return cerradura
-      }
-      if (caracter === Cerradura.Opcional) {
-        cerradura = {
-          existe: true,
-          caracter,
-          index,
-          tipo: Cerradura.Opcional
-        }
-        return cerradura
+    let primerCerradura: Cerradura | null = null
+    let primerIndexCerradura: number | null = null
 
-      }
-      if (caracter === Cerradura.Positiva) {
-        cerradura = {
-          existe: true,
+    console.log({entrada})
+    for (let index = entrada.length; index >= 0; index--) {
+      const caracter = entrada[index]
+      if (caracter === Cerradura.Kleen) primerCerradura = Cerradura.Kleen
+      if (caracter === Cerradura.Opcional) primerCerradura = Cerradura.Opcional
+      if (caracter === Cerradura.Positiva) primerCerradura = Cerradura.Positiva
+      if (
+        caracter === Cerradura.Kleen ||
+        caracter === Cerradura.Opcional ||
+        caracter === Cerradura.Positiva
+      ) {
+        primerIndexCerradura = index
+      } else if (caracter === this.parentecisDerecho) {
+        const nuevaSeccion: string[] = entrada.slice(0, index)
+        const nuevaBusqueda = this.buscarCerradura(nuevaSeccion)
+          index = nuevaBusqueda.index
+      } else if (caracter === this.parentecisIzquierdo) {
+        return {
+          existe: false,
           caracter,
           index,
           tipo: Cerradura.Positiva
         }
-                return cerradura
-
       }
     }
-    
+    if (!primerCerradura || !primerIndexCerradura) {
+      return {
+        existe: false,
+        caracter: '',
+        index: -1,
+        tipo: Cerradura.Positiva
+      }
+    }
+    cerradura = {
+      existe: true,
+      caracter: primerCerradura,
+      index: primerIndexCerradura,
+      tipo: primerCerradura
+    }
     return cerradura
   }
 }
