@@ -188,14 +188,17 @@ class FDACerraduraKleen implements FDA {
   })
   nodo: FDASimple | FDAContatenacion | FDAUnion | Nodo | FDACerraduraKleen
 
+  tipo:Cerradura
   constructor (
     caracter: string,
     nodo: FDASimple | FDAContatenacion | FDAUnion,
-    numeroNodo: number
+    numeroNodo: number,
+    tipo:Cerradura
   ) {
     this.nodo = nodo
     this.caracter = caracter
     this.numeroNodo = numeroNodo
+    this.tipo = tipo
   }
 
   setNodoIzquierda () {}
@@ -266,7 +269,7 @@ class FilaTabla {
 
 class Thompson {
 
-  caracteresReservados: string[] = ['*', '?', '(', ')', '|']
+  caracteresReservados: string[] = ['*', '?', '(', ')', '|','+','?']
   cerraduraPositiva: string = '+'
   cerraduraOpcional: string = '?'
   union: string = '|'
@@ -688,10 +691,23 @@ console.log("SI debo estar aquí",{filaCentro})
       }
       //
       console.log("=>",{filaCentro})
-      $tabla.innerHTML += filaCentro.getTag()
-      $tabla.innerHTML += filaIzquierda.getTag()
-      $tabla.innerHTML += filaDerecha.getTag()
-      $tabla.innerHTML += filaGrande.getTag()
+
+      if (afnd.tipo ===Cerradura.Kleen) {
+        $tabla.innerHTML += filaCentro.getTag()
+        $tabla.innerHTML += filaIzquierda.getTag()
+        $tabla.innerHTML += filaDerecha.getTag()
+        $tabla.innerHTML += filaGrande.getTag()
+      }
+      if (afnd.tipo ===Cerradura.Opcional) {
+        $tabla.innerHTML += filaIzquierda.getTag()
+        $tabla.innerHTML += filaDerecha.getTag()
+        $tabla.innerHTML += filaGrande.getTag()
+      }
+      if (afnd.tipo ===Cerradura.Positiva) {
+        $tabla.innerHTML += filaCentro.getTag() 
+        $tabla.innerHTML += filaIzquierda.getTag()
+        $tabla.innerHTML += filaDerecha.getTag()
+      }
 
       this.generarFilasTablaFDA(afnd.nodo)
     }
@@ -846,11 +862,11 @@ console.log("SI debo estar aquí",{filaCentro})
       return new FDASimple(entrada[0], numeroNodo)
     } else if (this.buscarCerradura(entrada).existe) {
       console.log('ES CERRADURA')
-      const cerradura = this.buscarCerradura(entrada)
 
+      const cerradura = this.buscarCerradura(entrada)
       const adelanteDeCerradura = cerradura.index + 1
       mitadIzquierda = entrada.slice(0, adelanteDeCerradura)
-
+      
       cerraduraLimpia = this.limpiarCerradura([...mitadIzquierda])
 
       const indexParetensisIzquierdo = this.encontrarParentesisIzquierdo(
@@ -878,7 +894,8 @@ console.log("SI debo estar aquí",{filaCentro})
       const nuevaCerradura: FDACerraduraKleen = new FDACerraduraKleen(
         `(${cerraduraProcesada.caracter})*`,
         cerraduraProcesada,
-        numeroNodo
+        numeroNodo,
+        cerradura.tipo
       )
       const cerraduraEstaAlInicio = indexParetensisIzquierdo === 0
       if (!cerraduraEstaAlInicio) {
