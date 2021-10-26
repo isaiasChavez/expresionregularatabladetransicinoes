@@ -42,6 +42,8 @@ class FDACerraduraKleen implements FDA {
   setNodoDerecha (nodoDerecha: Nodo | FDASimple) {
     this.nodoDerecha = nodoDerecha
   }
+
+  
 }
 
 export default FDACerraduraKleen

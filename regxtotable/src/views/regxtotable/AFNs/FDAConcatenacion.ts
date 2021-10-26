@@ -26,5 +26,8 @@ class FDAContatenacion implements FDA {
   setNodoDerecha (nodoDerecha: Nodo | FDAContatenacion | FDASimple) {
     this.nodoDerecha = nodoDerecha
   }
+
+  
+
 }
 export default FDAContatenacion

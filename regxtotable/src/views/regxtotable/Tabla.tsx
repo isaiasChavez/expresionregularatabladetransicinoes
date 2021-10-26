@@ -58,6 +58,8 @@ const Tabla: React.FC<TablaProps> = ({ alfabeto,Afd }) => {
       <Table className='w-full' bordered  columns={columns} dataSource={rows} />
     </>
   )
-}
+
+ }
+
 
 export default Tabla
