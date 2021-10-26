@@ -26,7 +26,9 @@ export class FilaTabla {
       // @ts-ignore
       this.fila[datos.caracter] = datos.apuntaA
     } else {
-      throw new Error('No existe el caracter en el alfabeto')
+      throw new Error(
+        `No existe el caracter en el alfabeto {${datos.caracter}}`
+      )
     }
   }
   getFila (): {} {
@@ -52,7 +54,11 @@ class Thompson {
     this.alfabeto = datos.alfabeto
     this.fda = this.procesarEntrada(datos.entrada, null)
     this.generarStringFDA(this.fda)
-    this.generarTablaFDA(this.fda)
+    try {
+      this.generarTablaFDA(this.fda)
+    } catch (error:any) {
+      alert(error.message)
+    }
   }
 
   agregarFilasATabla (filas: FilaTabla[]) {
@@ -150,7 +156,10 @@ class Thompson {
         })
       }
 
-      if (afnd.nodoArriba instanceof FDAUnion||afnd.nodoArriba instanceof FDACerraduraKleen) {
+      if (
+        afnd.nodoArriba instanceof FDAUnion ||
+        afnd.nodoArriba instanceof FDACerraduraKleen
+      ) {
         filaArribaDerecha = new FilaTabla(
           afnd.nodoArriba.nodoDerecha.numeroNodo + ' ',
           this.alfabeto
@@ -216,7 +225,10 @@ class Thompson {
         })
       }
 
-      if (afnd.nodoAbajo instanceof FDAUnion||afnd.nodoAbajo instanceof FDACerraduraKleen) {
+      if (
+        afnd.nodoAbajo instanceof FDAUnion ||
+        afnd.nodoAbajo instanceof FDACerraduraKleen
+      ) {
         console.log('es  union')
 
         filaAbajoDerecha = new FilaTabla(
@@ -493,7 +505,9 @@ class Thompson {
           })
         }
       }
+      console.log("====>",afnd.tipo,Cerradura.Kleen,afnd.tipo === Cerradura.Kleen)
       if (afnd.tipo === Cerradura.Kleen) {
+       console.log("==>",{filaGrande})
         if (filaCentro && filaIzquierda && filaDerecha && filaGrande) {
           this.agregarFilasATabla([
             filaCentro,
@@ -533,7 +547,10 @@ class Thompson {
 
     if (afnd instanceof FDASimple) {
       //Solo son dos nodos
-      const fila:FilaTabla | null= new FilaTabla(afnd.numeroNodo, this.alfabeto)
+      const fila: FilaTabla | null = new FilaTabla(
+        afnd.numeroNodo,
+        this.alfabeto
+      )
 
       if (afnd.nodoDerecha instanceof FDAContatenacion) {
         fila.setValue({
@@ -570,8 +587,8 @@ class Thompson {
     let operacion: Operaciones = Operaciones.Contatenacion
     let mitadIzquierda: string[]
     let mitadDerecha: string[]
-    let fdaIzquierdo: FDASimple | FDAContatenacion
-    let fdaDerecho: FDASimple | FDAContatenacion
+    let fdaIzquierdo: FDASimple | FDAContatenacion | null = null
+    let fdaDerecho: FDASimple | FDAContatenacion | null = null
     let nuevoFDA: FDASimple | FDAContatenacion | null = null
     const finalCadena = entrada.length
     let cerraduraLimpia: string[]
@@ -580,69 +597,56 @@ class Thompson {
       return new FDASimple(entrada[0], numeroNodo)
     } else if (FDACerraduraKleen.buscarCerradura(entrada).existe) {
       console.log('ES CERRADURA')
-      const cerradura = FDACerraduraKleen.buscarCerradura(entrada)
-      const adelanteDeCerradura = cerradura.index + 1
 
-      mitadIzquierda = entrada.slice(0, adelanteDeCerradura)
-      cerraduraLimpia = FDACerraduraKleen.limpiarCerradura([...mitadIzquierda])
+      const cerradura = FDACerraduraKleen.buscarCerradura(entrada)
+      const cerraduraEstaAlFinal = cerradura.index === entrada.length - 1
 
       const indexParetensisIzquierdo = FDACerraduraKleen.encontrarParentesisIzquierdo(
         entrada
       )
-
-      const cerraduraEstaAlFinal = cerradura.index === entrada.length - 1
       const cerraduraEstaAlInicio = indexParetensisIzquierdo === 0
 
       const soloEsCerradura = cerraduraEstaAlInicio && cerraduraEstaAlFinal
 
-      const cerraduraProcesada:
-        | FDAContatenacion
-        | FDASimple
-        | FDAUnion = this.procesarEntrada(cerraduraLimpia, null)
+      console.log({cerraduraEstaAlFinal,cerraduraEstaAlInicio,soloEsCerradura})
 
-      const nuevaCerradura: FDACerraduraKleen = new FDACerraduraKleen(
-        `(${cerraduraProcesada.caracter})*`,
-        cerraduraProcesada,
-        numeroNodo,
-        cerradura.tipo
-      )
-      if (soloEsCerradura) {
-        return nuevaCerradura
-      } else if (cerraduraEstaAlFinal) {
-        fdaDerecho = nuevaCerradura
+      if (!cerraduraEstaAlFinal) {
+        mitadIzquierda = entrada.slice(0, cerradura.index + 1)
+        mitadDerecha = entrada.slice(cerradura.index + 1, finalCadena)
+        const hayUnaUnionAlInicio = mitadDerecha[0] === this.union
+        if (hayUnaUnionAlInicio) {
+          operacion = Operaciones.Union
+          mitadDerecha.shift()
+        }
+
+        console.log({mitadDerecha})
+        fdaDerecho = this.procesarEntrada(mitadDerecha, null)
+        fdaIzquierdo = this.procesarEntrada(mitadIzquierda, null)
+      } else if (!soloEsCerradura) {
         mitadIzquierda = entrada.slice(0, indexParetensisIzquierdo)
+        mitadDerecha = entrada.slice(indexParetensisIzquierdo, finalCadena)
+        console.log("MITAD DERECHA",{mitadDerecha})
         const hayUnaUnionAlFinal =
           mitadIzquierda[mitadIzquierda.length - 1] === this.union
         if (hayUnaUnionAlFinal) {
           operacion = Operaciones.Union
-          mitadIzquierda.shift()
+          mitadIzquierda.pop()
         }
+        fdaDerecho = this.procesarEntrada(mitadDerecha, null)
         fdaIzquierdo = this.procesarEntrada(mitadIzquierda, null)
-      } else {
-        if (nodoDerecho) {
-          fdaDerecho = nodoDerecho
-        } else {
-          mitadDerecha = entrada.slice(adelanteDeCerradura, finalCadena)
-          console.log({mitadDerecha})
-          if (mitadDerecha[0] === this.union) {
-            operacion = Operaciones.Union
-            mitadDerecha.shift()
-          }
-          fdaDerecho = this.procesarEntrada(mitadDerecha, null)
-        }
-
-        if (!cerraduraEstaAlInicio) {
-          const mitadMitadIzquierdaConCerradura = entrada.slice(
-            0,
-            indexParetensisIzquierdo
-          )
-          fdaIzquierdo = this.procesarEntrada(
-            mitadMitadIzquierdaConCerradura,
-            nuevaCerradura
-          )
-        } else {
-          fdaIzquierdo = nuevaCerradura
-        }
+      } else if (soloEsCerradura) {
+        cerraduraLimpia = FDACerraduraKleen.limpiarCerradura([...entrada])
+        const cerraduraProcesada:
+          | FDAContatenacion
+          | FDASimple
+          | FDAUnion = this.procesarEntrada(cerraduraLimpia, null)
+        const nuevaCerradura: FDACerraduraKleen = new FDACerraduraKleen(
+          `(${cerraduraProcesada.caracter})*`,
+          cerraduraProcesada,
+          numeroNodo,
+          cerradura.tipo
+        )
+        return nuevaCerradura
       }
     } else if (FDAUnion.buscarUnion(entrada).existe) {
       operacion = Operaciones.Union
@@ -670,26 +674,35 @@ class Thompson {
       }
     }
 
-    switch (operacion) {
-      case Operaciones.Contatenacion:
-        nuevoFDA = new FDAContatenacion(
-          `${fdaIzquierdo.caracter}  ${fdaDerecho.caracter}`,
-          fdaIzquierdo,
-          fdaDerecho,
-          numeroNodo
-        )
-        break
-      case Operaciones.Union:
-        nuevoFDA = new FDAUnion(
-          `${fdaIzquierdo.caracter} | ${fdaDerecho.caracter}`,
-          fdaIzquierdo,
-          fdaDerecho,
-          numeroNodo
-        )
-        break
+    if (fdaIzquierdo && fdaDerecho) {
+      switch (operacion) {
+        case Operaciones.Contatenacion:
+          nuevoFDA = new FDAContatenacion(
+            `${fdaIzquierdo.caracter}  ${fdaDerecho.caracter}`,
+            fdaIzquierdo,
+            fdaDerecho,
+            numeroNodo
+          )
+          break
+        case Operaciones.Union:
+          nuevoFDA = new FDAUnion(
+            `${fdaIzquierdo.caracter} | ${fdaDerecho.caracter}`,
+            fdaIzquierdo,
+            fdaDerecho,
+            numeroNodo
+          )
+          break
 
-      default:
-        break
+        default:
+          break
+      }
+    } else {
+      if (!fdaIzquierdo) {
+        throw new Error('fdaIzquierdo no está definido')
+      }
+      if (!fdaDerecho) {
+        throw new Error('fdaDerecho No esta definido')
+      }
     }
     if (!nuevoFDA) {
       throw new Error('No se ha podido crear el FDA')

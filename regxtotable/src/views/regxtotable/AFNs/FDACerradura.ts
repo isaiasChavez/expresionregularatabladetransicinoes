@@ -61,18 +61,11 @@ class FDACerraduraKleen implements FDA {
     return indexC
   }
   static limpiarCerradura = (entrada: string[]): string[] => {
-    let seccionCerradura: string[]
     entrada.pop()
-    const indexDerecho = entrada.length - 1
-    const final = entrada[indexDerecho]
-    const existenParentesis = final === this.parentecisDerecho
-    if (existenParentesis) {
-      const indexIzquierdo = FDACerraduraKleen.encontrarParentesisIzquierdo(entrada)
-      seccionCerradura = entrada.slice(indexIzquierdo + 1, indexDerecho)
-    } else {
-      throw new Error('Las clausuras requieren parentesis')
-    }
-    return seccionCerradura
+    entrada.pop()
+    entrada.shift()
+    
+    return entrada
   }
   static buscarCerradura = (
     entrada: string[]
@@ -88,7 +81,8 @@ class FDACerraduraKleen implements FDA {
       caracter: '',
       tipo: Cerradura.Kleen
     }
-    entrada.find((caracter: string, index: number) => {
+    for (let index = entrada.length; index >= 0; index--) {
+      const caracter = entrada[index];
       if (caracter === Cerradura.Kleen) {
         cerradura = {
           existe: true,
@@ -96,7 +90,7 @@ class FDACerraduraKleen implements FDA {
           index,
           tipo: Cerradura.Kleen
         }
-        return caracter
+        return cerradura
       }
       if (caracter === Cerradura.Opcional) {
         cerradura = {
@@ -105,7 +99,8 @@ class FDACerraduraKleen implements FDA {
           index,
           tipo: Cerradura.Opcional
         }
-        return caracter
+        return cerradura
+
       }
       if (caracter === Cerradura.Positiva) {
         cerradura = {
@@ -114,9 +109,11 @@ class FDACerraduraKleen implements FDA {
           index,
           tipo: Cerradura.Positiva
         }
-        return caracter
+                return cerradura
+
       }
-    })
+    }
+    
     return cerradura
   }
 }

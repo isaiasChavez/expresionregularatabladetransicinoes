@@ -1,7 +1,7 @@
 export enum Cerradura {
-  Kleen = '+',
+  Kleen = '*',
   Opcional = '?',
-  Positiva = '*'
+  Positiva = '+'
 }
 export enum Operaciones {
   Contatenacion = 'Contatenacion',
