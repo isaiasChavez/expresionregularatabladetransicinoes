@@ -13,7 +13,10 @@
     <div class="h-screen  w-screen  bg-gray-200 ">
         <div class="h-3/6 w-full flex justify-center items-center">
             <div class="flex flex-col h-48 w-2/6 rounded bg-white shadow-md p-4">
-                <textarea placeholder="aa|b|c" name="" class="px-4 py-2" id="entradaDeTexto" cols="30" rows="10"></textarea>
+                <input type="text" placeholder="(a|b)*cd"  value="" name="" class="px-4 py-2" id="entradaDeTexto" cols="30" rows="10">
+
+
+                </input>
                 <button class="w-3/6 shadow-md hover:opacity-70 transition  duration-200	 rounded bg-gray-500 mt-4 mx-auto py-1 text-white" id="bottonEntrada">
             Procesar
           </button>
@@ -42,6 +45,7 @@
         </div>
     </div>
 </body>
+<script type="module" src="./dist/helpers.js"></script>
 <script type="module" src="./dist/index.js"></script>
 
 </html>
